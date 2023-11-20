@@ -1,7 +1,7 @@
 version: '3.9'
 
 services:
-  oncall-web:
+  web:
     build: .
     hostname: oncall
     ports:
@@ -14,8 +14,7 @@ services:
     networks:
       - iris
   
-  oncall-mysql:
-    hostname: oncall-mysql
+  mysql:
     image: mysql:5.7
     environment:
       - MYSQL_ROOT_PASSWORD=1234
