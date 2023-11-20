@@ -23,10 +23,35 @@ services:
     networks:
       - iris
 
+  prom-mysql-exporter:
+    image: prom/mysqld-exporter
+    container_name: prom-mysql-exporter
+    labels:
+      co.elastic.logs/enabled: "false"
+    links:
+      - mysql
+    ports:
+      - 9104:9104
+    environment:
+      - MYSQLD_EXPORTER_PASSWORD=1234
+    volumes:
+      - ./configs/mysql-exporter.cnf:/etc/my.cnf
+    command:
+      - --mysqld.username=root
+      - --config.my-cnf=/etc/my.cnf
+      - --mysqld.address=mysql:3306
+    networks:
+      - iris
+    
+
   prometheus:
     image: prom/prometheus:v2.36.2
+    labels:
+      co.elastic.logs/enabled: "false"
+    container_name: prometheus
     volumes:
       - ./configs/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./configs/rules.yml:/etc/prometheus/rules.yml
       - prometheus_data:/prometheus
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
@@ -187,4 +212,8 @@ networks:
     name: iris
 
 volumes:
+    filebeat_data: {}
     prometheus_data: {}
+    alertmanager_data: {}
+    alertmanager_bot_data: {}
+    grafana_data: {}

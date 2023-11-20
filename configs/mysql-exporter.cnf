@@ -1,0 +1,6 @@
+[client]
+user=''
+password=''
+
+collect[]:
+  - mysql_global_status_connection_errors_total
