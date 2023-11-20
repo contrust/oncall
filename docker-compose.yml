@@ -40,6 +40,8 @@ services:
 
   blackbox:
     image: prom/blackbox-exporter:v0.12.0
+    labels:
+      co.elastic.logs/enabled: "false"
     container_name: blackbox
     ports:
     - 9115:9115
@@ -51,6 +53,135 @@ services:
     - web
     networks:
       - iris
+
+  duties-exporter:
+    container_name: duties-exporter
+    labels:
+      co.elastic.logs/enabled: "false"
+    build: https://github.com/contrust/oncall-duties-exporter.git
+    ports:
+      - 8090:8090
+    command: "python3 main.py 8090 oncall:8080 -v"
+    depends_on:
+      - web
+    networks:
+      - iris
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    restart: unless-stopped
+    ports:
+      - 3000:3000
+    volumes:
+      - grafana_data:/var/lib/grafana
+    env_file:
+      - grafana.env
+    networks:
+      - iris
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor
+    labels:
+      co.elastic.logs/enabled: "false"
+    container_name: cadvisor
+    restart: unless-stopped
+    privileged: true
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+    networks:
+      - iris
+
+  alertmanager:
+    hostname: alertmanager
+    labels:
+      co.elastic.logs/enabled: "false"
+    image: prom/alertmanager:v0.25.0
+    user: root
+    ports:
+      - 127.0.0.1:9093:9093
+    volumes:
+      - ./configs/alertmanager.yml:/etc/alertmanager/alertmanager.yml
+      - alertmanager_data:/etc/alertmanager/data
+    restart: unless-stopped
+    command:
+      - '--config.file=/etc/alertmanager/alertmanager.yml'
+      - '--storage.path=/etc/alertmanager/data'
+    networks:
+      - iris
+
+  filebeat:
+    image: elastic/filebeat:7.17.12
+    labels:
+      co.elastic.logs/enabled: "false"
+    # https://github.com/docker/swarmkit/issues/1951
+    # Need to override user so we can access the log files, and docker.sock
+    user: root
+    networks:
+      - iris
+    volumes:
+      - filebeat_data:/usr/share/filebeat/data
+      - /var/run/docker.sock:/var/run/docker.sock
+      # This is needed for filebeat to load container log path as specified in filebeat.yml
+      - /var/lib/docker/containers/:/var/lib/docker/containers/:ro
+
+      # # This is needed for filebeat to load jenkins build log path as specified in filebeat.yml
+      # - /var/lib/docker/volumes/jenkins_home/_data/jobs/:/var/lib/docker/volumes/jenkins_home/_data/jobs/:ro
+
+      # This is needed for filebeat to load logs for system and auth modules
+      - ./configs/filebeat.yml:/usr/share/filebeat/filebeat.yml
+    # disable strict permission checks
+    command: ["--strict.perms=false"]
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "2"
+
+  logstash:
+    image: elastic/logstash:7.17.12
+    labels:
+      co.elastic.logs/enabled: "false"
+    volumes:
+      - ./configs/logstash.conf:/usr/share/logstash/pipeline/logstash.conf
+    ports:
+      - 5044:5044
+    depends_on:
+      - elasticsearch
+    networks:
+      - iris
+
+  elasticsearch:
+    image: elastic/elasticsearch:7.17.12
+    labels:
+      co.elastic.logs/enabled: "false"
+    environment:
+      - bootstrap.memory_lock=true
+      - discovery.type=single-node
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ports:
+      - 9200:9200
+      - 9300:9300
+    networks:
+      - iris
+
+  kibana:
+    image: elastic/kibana:7.17.12
+    labels:
+      co.elastic.logs/enabled: "false"
+    environment:
+      - KBN_PATH_CONF=/etc/kibana
+    ports:
+      - 5601:5601
+    volumes:
+      - ./configs/kibana.yml:/etc/kibana/kibana.yml
+    networks:
+      - iris  
+
 networks:
   iris:
     name: iris

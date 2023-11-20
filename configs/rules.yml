@@ -1,0 +1,51 @@
+groups:
+- name: probes
+  rules:
+  - alert: BadTCPMySQLProbe
+    expr: probe_success{instance="blackbox:9115", job="blackbox-mysql-tcp"} == 0
+    for: 0s
+    labels:
+      severity: warning
+    annotations:
+      summary: "Can't establish a tcp connection with the database."
+      description: "A blackbox probe tcp_connect to mysql:3306 is not successful."
+  - alert: StableBadTCPMySQLProbe
+    expr: probe_success{instance="blackbox:9115", job="blackbox-mysql-tcp"} == 0
+    for: 1m
+    labels:
+      severity: critical
+    annotations:
+      summary: "Can't establish a tcp connection with the database."
+      description: "A blackbox probe tcp_connect to mysql:3306 is not successful for 1 minute."
+  - alert: BadHealthcheckOnCallProbe
+    expr: probe_success{instance="blackbox:9115", job="blackbox-oncall-healthcheck"} == 0
+    for: 0s
+    labels:
+      severity: warning
+    annotations:
+      summary: "The OnCall app returned a bad healthcheck."
+      description: "A blackbox probe http_2xx to oncall:8080/healthcheck is not successful."
+  - alert: StableBadHealthcheckOnCallProbe
+    expr: probe_success{instance="blackbox:9115", job="blackbox-oncall-healthcheck"} == 0
+    for: 1m
+    labels:
+      severity: critical
+    annotations:
+      summary: "The OnCall app returned a bad healthcheck."
+      description: "A blackbox probe http_2xx to oncall:8080/healthcheck is not successful for 1 minute."
+  - alert: LongHealthcheckOnCallProbe
+    expr: probe_duration_seconds{instance="blackbox:9115", job="blackbox-oncall-healthcheck"} > 0.1
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "An OnCall healthcheck is taking pretty long."
+      description: "A blackbox probe http_2xx to oncall:8080/healthcheck is taking more than 0.1 seconds for 5 minutes."
+  - alert: VeryLongHealthcheckOnCallProbe
+    expr: probe_duration_seconds{instance="blackbox:9115", job="blackbox-oncall-healthcheck"} > 1
+    for: 5m
+    labels:
+      severity: critical
+    annotations:
+      summary: "An OnCall healthcheck is taking too long."
+      description: "A blackbox probe http_2xx to oncall:8080/healthcheck is taking more than a second for 5 minute."
