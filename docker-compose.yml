@@ -4,6 +4,7 @@ services:
   web:
     build: .
     hostname: oncall
+    container_name: oncall-web
     ports:
       - 8081:8080
     environment:
@@ -16,6 +17,7 @@ services:
   
   mysql:
     image: mysql:5.7
+    container_name: oncall-mysql
     environment:
       - MYSQL_ROOT_PASSWORD=1234
     networks:
