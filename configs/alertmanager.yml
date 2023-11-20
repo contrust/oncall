@@ -1,0 +1,43 @@
+global:
+route:
+  receiver: 'telegram-warning'
+  group_by: ['alertname', 'severity']
+  group_wait: 10s
+  group_interval: 5m
+  repeat_interval: 5m
+  routes:
+  - receiver: 'telegram-warning'
+    match:
+      severity: 'warning'
+    active_time_intervals:
+      - business-hours
+  - receiver: 'telegram-critical'
+    match:
+      severity: 'critical'
+    
+time_intervals:
+  - name: business-hours
+    time_intervals:
+      - weekdays: ["monday:friday"]
+        times:
+          - start_time: "01:00"
+            end_time: "20:00"
+        location: Asia/Yekaterinburg
+
+receivers:
+- name: 'telegram-warning'
+  telegram_configs:
+  - bot_token: ''
+    api_url: 'https://api.telegram.org'
+    chat_id: 'chat_id'
+    message:  "Alertname: {{ .GroupLabels.alertname }}\n{{ range .Alerts }}{{ .Annotations.description }}\n{{ end }}"
+    parse_mode: ''
+
+- name: 'telegram-critical'
+  telegram_configs:
+  - bot_token: ''
+    api_url: 'https://api.telegram.org'
+    chat_id: ''
+    message:  "Alertname: {{ .GroupLabels.alertname }}\n{{ range .Alerts }}{{ .Annotations.description }}\n{{ end }}"
+    parse_mode: ''
+   
